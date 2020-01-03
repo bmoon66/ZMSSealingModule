@@ -1,0 +1,21 @@
+CMD(201) Send Status						RX: <201,0,0,0,201,>				|-->	TX: <111,1111,1111,1111,CheckSum,>
+CMD(202) Return previous CMD and data		RX: <202,0,0,0,202,>				|-->	TX: <PreCMD,PreData,PreData,PreData,CheckSum,>
+CMD(203) Wait(NTime Mill Sec				RX: <203,Time,0,0,203,>				|-->	TX: <203,Time,0,0,CheckSum,>
+CMD(204) Enguage PvSucCupCylinder			RX: <204,OnOff,0,0,204,>			|-->	TX: <204,OnOff,0,0,CheckSum,>
+CMD(205) Enguage lay flat cutter			RX: <205,TimeOn,0,0,205,>			|-->	TX: <205,TimeOn,0,0,CheckSum,>
+CMD(206) Enguage SucCupCylinder				RX: <206,OnOff,0,0,206,>			|-->	TX: <206,OnOff,0,0,CheckSum,>
+CMD(207) Enguage PvSealerLH					RX: <207,OnOff,0,0,207,>			|-->	TX: <207,OnOff,0,0,CheckSum,>
+CMD(208) Enguage PvSealerRH					RX: <208,OnOff,0,0,208,>			|-->	TX: <208,OnOff,0,0,CheckSum,>
+CMD(209) Enguage PvSealerLH Time on			RX: <209,TimeOn,0,0,209,>			|-->	TX: <209,TimeOn,0,0,CheckSum,>
+CMD(210) MoveToPosition (Feed Lh Rh)		RX:	<210,Position,Speed,0,210,>		|-->	TX: <210,pos,0,0,CheckSum,>
+CMD(211) Enguage disenguage SealerClamps	RX: <211,OnOff,0,0,211,>			|-->	TX: <211,OnOff,0,0,CheckSum,>
+CMD(212) Move Table to  Position at Speed	RX: <212,Position,Speed,0,212,>		|-->	TX: <212,pos,0,0,CheckSum,>
+CMD(213) MoveSteps:Table, Dir, Steps, Speed	RX: <213,Dir,Steps,Speed,213,>		|-->	TX: <213,Dir,Steps,Speed,CheckSum,>
+CMD(214) Get SmSealTable Current Position	RX: <214,0,0,0,214,>				|-->	TX: <214,Position,0,0,CheckSum,>
+CMD(215) Go to home position				RX: <215,0,0,0,215,>				|-->	TX: <215,0,0,0,215,>
+CMD(216) MoveSteps:Lh Rh steppers 			RX: <216,Dir,Steps,Speed,216,>		|-->	TX: <216,Dir,Steps,Speed,CheckSum,>
+CMD(217) MoveSteps: Lh Rh and feed steppers	RX: <217,Dir,Steps,Speed,217,>		|-->	TX: <217,Dir,Steps,Speed,CheckSum,>
+CMD(218) Get Lh Rh Feed position			RX: <218,0,0,0,218,>				|-->	TX: <218,LH pos,RH pos,Feed pos,CheckSum,>
+CMD(219) MoveToPosition Lh Rh 				RX: <219,Position,Speed,0,219, >	|-->	TX: <219,pos,0,0,CheckSum,>
+CMD(220) Get SmSealTable Max Position		RX: <220,0,0,0,220,>				|-->	TX: <220,Position,0,0,CheckSum,>
+CMD(221) Enable disable sealer				RX: <221,CMD,0,0,221,>				|-->	TX: <221,On Off,0,0,CheckSum,>	

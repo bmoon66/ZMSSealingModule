@@ -1,0 +1,108 @@
+ *********************************************************************
+ Communication protocol is 
+ <333,666666,666666,666666,88888888,>
+<CMD,Data1,Data2,Data3,CheckSum,>
+ Opening Char, Command, Data1, Data2 ,Data3, Checksum, Closing Char
+ Total of 36 bytes.
+ **********************************************************************
+ 
+ //////////////////////////////////////////////////////////////////////
+ Check out accel decell
+ 
+ 
+ 
+ Upon testing for some pruned down code, I found that when I hit the reset button on the arduino board, the chatter only lasts for about 2 seconds. When I click on the Opens the serial monitor icon, it chatters for the full 12 seconds. I guess there is some communication between the computer and the arduino that takes more time.
+
+I found that if I compile and upload “BareMinimum” from the example menu, it chatters but does not stop.
+
+[code]
+
+void setup() {
+// put your setup code here, to run once:
+
+}
+
+void loop() {
+// put your main code here, to run repeatedly:
+
+}[/code]
+
+"Raise the Boom"
+The “Boom” is a 17 inch long, light weight rack and pinion on a vertical slide rail.
+
+This worked like the bigger program. It just raises the boom and then turns off the board to let the boom drop. I think that there is some additional code that is supposed to lower the boom in a controlled manor but it must be bypassed.
+
+[code]
+
+#include <Stepper.h>
+
+#define stepPin 22
+#define dirPin 24
+#define enablePin 26
+int raiseTheBoomSteps = 620; // 675
+int lowerTheBoomSteps = 200;
+
+void setup()
+{
+
+Serial.begin(9600); // initialize the// Serial port
+pinMode(stepPin, OUTPUT);
+pinMode(dirPin, OUTPUT);
+digitalWrite(enablePin, HIGH);
+
+void loop()
+{
+int j;
+int accelerate = 5000;
+digitalWrite(enablePin, LOW);
+// Set the enablePin low so that we can now use our stepper driver.
+// digitalWrite(enablePin, LOW);
+// wait a few microseconds for the enable to take effect
+// (That isn’t in the spec sheet. It was just added it for sanity.)
+delayMicroseconds(2);
+digitalWrite(dirPin, LOW); // we set the direction pin in an arbitrary direction.
+
+Serial.println(“UP”);
+for(j=0; j<=raiseTheBoomSteps; j++)
+{
+//Serial.println(j);
+digitalWrite(stepPin, LOW);
+delayMicroseconds(2);
+digitalWrite(stepPin, HIGH);
+delayMicroseconds(accelerate);
+if(accelerate >= 1024)
+{
+accelerate = (accelerate - (accelerate/199));
+}
+}
+delay(500);
+//digitalWrite(enablePin, HIGH);
+Serial.println(“DELAY”);
+delay(1000);
+
+int k;
+int decelerate = 5000;
+digitalWrite(enablePin, LOW);
+// Set the enablePin low so that we can now use our stepper driver.
+// digitalWrite(enablePin, LOW);
+// wait a few microseconds for the enable to take effect
+// (That isn’t in the spec sheet. It was just added it for sanity.)
+Serial.println(“DOWN”);
+delayMicroseconds(2);
+digitalWrite(dirPin, HIGH); // we set the direction pin in an arbitrary direction.
+
+for(j=0; k<=lowerTheBoomSteps; k++)
+{
+digitalWrite(stepPin, LOW);
+delayMicroseconds(2);
+digitalWrite(stepPin, HIGH);
+delayMicroseconds(decelerate);
+if(decelerate >= 1024)
+{
+decelerate = (decelerate - (decelerate/199));
+}
+}
+digitalWrite(enablePin, HIGH);
+Serial.println(“DELAY DOWN”);
+delay(5000);
+}[/code]
