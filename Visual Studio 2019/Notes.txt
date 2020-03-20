@@ -106,3 +106,36 @@ digitalWrite(enablePin, HIGH);
 Serial.println(“DELAY DOWN”);
 delay(5000);
 }[/code]
+
+----------------------------------------------------------------------------------------------------
+ Function Name:		MoveToPositionLhRh
+					Move steppers on table to position
+______________________________________________________________________________________________________
+unsigned int MoveToPositionLayflat(unsigned int Position, int Speed) {
+
+	unsigned int ThePosition;
+	unsigned int x;
+	unsigned int y;
+
+	if (SmLayflat[3] == Position)								// Check if requested pos is Curr position
+	{
+		return Position;										// Return Position
+	}
+
+	if (Position >= 0);											// Check if requested pos to little
+	{
+		if (Position > SmLayflat[3]) {						// If move to position is grater than current position 
+			x = Position - SmLayflat[3];						// Subtract current position from move to position
+			ThePosition = MoveStepsLhRh(CCW, x, Speed);			// Move that amount of steps CCW
+			return ThePosition;									// Return Position
+		}
+		else if (Position < SmLayflat[3]) {					// If move to position is grater than current position 
+			y = SmLayflat[3] - Position;						// Subtract move to position from current position
+			ThePosition = MoveStepsLhRh(CW, y, Speed);			// Move that amount of steps CW
+			return ThePosition;									// Return Position	
+		}
+
+		else
+			return 6666;										//Return request position error
+	}
+}

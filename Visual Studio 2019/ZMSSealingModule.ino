@@ -4,29 +4,41 @@
  Author:	bmoon
 */
 
+#include <Servo.h>
+
+Servo LayflatServo;										// create servo object to control a servo
+//int LayflatServoPos = 0;								// variable to store the servo position
+
+														
 // Define stepper pins:: PUL, DIR, ENA, CurrentPosition, AwayPosition 
-unsigned int SmSealTable[5] = { 6,5,4,0,0 };			//Stepper motor seal module table:: PUL, DIR, ENA, CurrentPosition, AwayPosition
-unsigned int SmLayflatFeed[5] = { 16,15,14,0,0 };		//Stepper motor lay flat feed:: PUL, DIR, ENA, CurrentPosition, AwayPosition
-unsigned int SmLayflatLH[5] = { 9,8,7,0,0 };			//Stepper motor left hand of table:: PUL, DIR, ENA, CurrentPosition, AwayPosition
-unsigned int SmLayflatRH[5] = { 12,11,10,0,0 };			//Stepper motor right hand of table:: PUL, DIR, ENA, CurrentPosition, AwayPosition
+unsigned int SmSealTable[5] = { 28,29,30,0,0 };			//Stepper motor seal module table:: PUL, DIR, ENA, CurrentPosition, AwayPosition
+unsigned int SmLayflatFeed[5] = { 19,20,21,0,0 };		//Stepper motor lay flat feed:: PUL, DIR, ENA, CurrentPosition, AwayPosition
+unsigned int SmLayflat[5] = { 25,26,27,0,0 };			//Stepper motor Jaw with suction cups:: PUL, DIR, ENA, CurrentPosition, AwayPosition
+unsigned int SmEjectLayflat[5] = { 22,23,24,0,0 };		//Stepper motor To eject from table:: PUL, DIR, ENA, CurrentPosition, AwayPosition
 
 // Define relay pins
-const int PvLayflatCutter = 40;							//Add pin number
-const int PvSealerLH = 38;								//Add pin number
-const int PvSealerRH = 42;								//Add pin number
-const int PvSealerClamps = 39;							//Add pin number
-const int PvSucCupCylinder = 41;						//Add pin number
-const int PvSucCupVacume = 43;							//Add pin number
+const int PvLayflatCutter = 47;							//IsSet
+const int PvSealerLH = 46;								//IsSet
+const int PvSealerRH = 44;								//IsSet
+const int PvSealerClamps = 45;							//IsSet
+const int PvEjectwheelCylinder = 50;					//IsSet
+const int PvSucCupVacume = 49;							//IsSet
+const int PvFeed = 48;									//IsSet
+const int PSIPin = A0;									//IsSet
+const int TblHeaterLH = 51;								//IsSet
+const int TblHeaterRH = 52;								//IsSet
 
 // Define sensor pins
-const int ProxHome = 3;									//Add pin number
-const int ProxAway = 2;									//Add pin number
+const int ProxHome = 2;									//ProxHome pin
+const int ProxAway = 3;									//ProxAway pin
+const int ProxLayflatHome = 4;							//ProxLayflatHome pin
+const int ProxLayflatAway = 5;							//ProxLayflatAway pin
 
 const bool CW = 1;										//For stepper direction control
 const bool CCW = 0;										//For stepper direction control
 
-bool Enable = 0;										//Enable or disable sealing module
-int Error = 0;											//Not yet used
+bool Enable = 0;										//Global enable or disable sealing module
+//int Error = 0;										//Not yet used
 
 int CurrCMD;											//Recieved Current CMD
 unsigned int CurrData;									//Recieved Current Data
@@ -37,11 +49,17 @@ unsigned int PrevData;									//Previous Current Data
 unsigned int PrevData2;									//Previous Current Data 2
 unsigned int PrevData3;									//Previous Current Data 3
 
-int AtHome = 1;											//Global proximity var
-int AtAway = 1;											//Global proximity var
-											
+int MyServo(9);											//Global Servo
+float PSI = 0;											//Global PSI
+
+
 void setup() {
-	
+
+	LayflatServo.attach(MyServo);						// Attaches the servo on pin 9 to the servo object
+	LayflatServo.write(120);							// tell servo to go to position 120
+	digitalWrite(MyServo, LOW);							//Turn Servo Off
+
+
 	digitalWrite(SmSealTable[2], LOW);					//Disable Stepper Driver	
 	pinMode(SmSealTable[0], OUTPUT);					//Set stepper pin for output pinMode (PUL, OUTPUT);
 	pinMode(SmSealTable[1], OUTPUT);					//Set stepper pin for output pinMode (DIR, OUTPUT);
@@ -55,18 +73,20 @@ void setup() {
 	pinMode(SmLayflatFeed[2], OUTPUT);					//Set stepper pin for output pinMode (ENA, OUTPUT);
 	SmLayflatFeed[3] = 0;								//Set current position to 0
 
-	digitalWrite(SmLayflatLH[2], LOW);					//Disable Stepper Driver
-	pinMode(SmLayflatLH[0], OUTPUT);					//Set stepper pin for output pinMode (PUL, OUTPUT);
-	pinMode(SmLayflatLH[1], OUTPUT);					//Set stepper pin for output pinMode (DIR, OUTPUT);
-	pinMode(SmLayflatLH[2], OUTPUT);					//Set stepper pin for output pinMode (ENA, OUTPUT);
-	SmLayflatLH[3] = 0;									//Set current position to 0
+	digitalWrite(SmLayflat[2], LOW);					//Disable Stepper Driver
+	pinMode(SmLayflat[0], OUTPUT);						//Set stepper pin for output pinMode (PUL, OUTPUT);
+	pinMode(SmLayflat[1], OUTPUT);						//Set stepper pin for output pinMode (DIR, OUTPUT);
+	pinMode(SmLayflat[2], OUTPUT);						//Set stepper pin for output pinMode (ENA, OUTPUT);
+	SmLayflat[3] = 0;									//Set current position to 0
 
-	digitalWrite(SmLayflatRH[2], LOW);					//Disable Stepper Driver
-	pinMode(SmLayflatRH[0], OUTPUT);					//Set stepper pin for output pinMode (PUL, OUTPUT);
-	pinMode(SmLayflatRH[1], OUTPUT);					//Set stepper pin for output pinMode (DIR, OUTPUT);
-	pinMode(SmLayflatRH[2], OUTPUT);					//Set stepper pin for output pinMode (ENA, OUTPUT);
-	SmLayflatRH[3] = 0;									//Set current position to 0
-
+	digitalWrite(SmEjectLayflat[2], LOW);				//Disable Stepper Driver
+	pinMode(SmEjectLayflat[0], OUTPUT);					//Set stepper pin for output pinMode (PUL, OUTPUT);
+	pinMode(SmEjectLayflat[1], OUTPUT);					//Set stepper pin for output pinMode (DIR, OUTPUT);
+	pinMode(SmEjectLayflat[2], OUTPUT);					//Set stepper pin for output pinMode (ENA, OUTPUT);
+	SmEjectLayflat[3] = 0;								//Set current position to 0
+	
+	
+	
 	pinMode(PvLayflatCutter, OUTPUT);					//Setup pins for output
 	digitalWrite(PvLayflatCutter, HIGH);				//Turn Cutter Off
 
@@ -79,17 +99,29 @@ void setup() {
 	pinMode(PvSealerClamps, OUTPUT);					//Setup pins for output
 	digitalWrite(PvSealerClamps, HIGH);					//Turn PvSealerClamps Off
 
-	pinMode(PvSucCupCylinder, OUTPUT);					//Setup pins for output
-	digitalWrite(PvSucCupCylinder, HIGH);				//Turn PvSucCupCylinder Off
+	pinMode(PvEjectwheelCylinder, OUTPUT);				//Setup pins for output
+	digitalWrite(PvEjectwheelCylinder, HIGH);			//Turn PvEjectwheelCylinder Off
 
 	pinMode(PvSucCupVacume, OUTPUT);					//Setup pins for output
 	digitalWrite(PvSucCupVacume, HIGH);					//Turn PvvSucCupVacume Off
 
+	pinMode(PvFeed, OUTPUT);							//Setup pins for output
+	digitalWrite(PvFeed, HIGH);							//Turn PvFeed Off
+
 	pinMode(ProxHome, INPUT);							//Setup pins for input
 	pinMode(ProxAway, INPUT);							//Setup pins for input
-		   
+	pinMode(ProxLayflatHome, INPUT);					//Setup pins for input
+	pinMode(ProxLayflatAway, INPUT);					//Setup pins for input
+	pinMode(PSIPin, INPUT);								//Setup pins for input
+	pinMode(TblHeaterLH, OUTPUT);						//Setup pins for output
+	digitalWrite(TblHeaterLH, HIGH);					//Turn Heater Off
+	pinMode(TblHeaterRH, OUTPUT);						//Setup pins for output
+	digitalWrite(TblHeaterRH, HIGH);					//Turn Heater Off
+
+	
 	Serial.begin(57600);								//Start serial port
 }
+
 
 void loop() {
 
@@ -104,7 +136,7 @@ void loop() {
 							
 			else {
 
-				if (CurrCMD > 200 && CurrCMD < 299)							//Check if correct CMD numbers
+				if (CurrCMD > 199 && CurrCMD < 299)							//Check if correct CMD numbers
 				{
 					RunCMD(CurrCMD, CurrData, CurrData2, CurrData3);		// Run Command
 				}
@@ -122,7 +154,7 @@ void loop() {
 	else
 	{
 		if (RecvCmdData() == true) {										//If Recieved data and CMD is correct
-			if (CurrCMD == 221 && CurrData == 1)											//Check if CMD enable CMD
+			if (CurrCMD == 222 && CurrData == 1)							//Check if CMD enable CMD
 			{
 				RunCMD(CurrCMD, CurrData, CurrData2, CurrData3);			//Run Enable Command
 			}
@@ -139,6 +171,7 @@ void loop() {
 	}
 }
 
+
 /*----------------------------------------------------------------------------------------------------
  Function Name:		RecvCmdData
 					Checks for opening char gets CMD Data Data2 and checksum from PC
@@ -146,7 +179,7 @@ void loop() {
 					No data returns false
 _______________________________________________________________________________________________________*/
 bool RecvCmdData() {												// Recieve data 
-
+	
 	char AddCmdData[37];											//Array place holder for Serial.readBytesUtill
 	int CmdFromPC = 0;
 	unsigned int DataFromPC = 0;									//Local vars to hold broken apart rx data
@@ -169,16 +202,16 @@ bool RecvCmdData() {												// Recieve data
 			CmdFromPC = atoi(strtokIndx);							// convert this part to an integer copy to CmdFrom PC
 
 			strtokIndx = strtok(NULL, ",");							// this continues where the previous call left off
-			DataFromPC = atof(strtokIndx);							// convert this part to an integer copy to CmdFrom PC
+			DataFromPC = atoi(strtokIndx);							// convert this part to an integer copy to CmdFrom PC
 
 			strtokIndx = strtok(NULL, ",");							// this continues where the previous call left off
-			Data2FromPc = atof(strtokIndx);							// convert this part to an integer copy to Data2FromPC
+			Data2FromPc = atoi(strtokIndx);							// convert this part to an integer copy to Data2FromPC
 
 			strtokIndx = strtok(NULL, ",");							// this continues where the previous call left off
-			Data3FromPC = atof(strtokIndx);							// convert this part to an integer copy to Data2FromPC
+			Data3FromPC = atoi(strtokIndx);							// convert this part to an integer copy to Data2FromPC
 
 			strtokIndx = strtok(NULL, ",");							// this continues where the previous call left off
-			CheckSumFromPC = atof(strtokIndx);						// convert this part to an integer copy to CmdFrom PC
+			CheckSumFromPC = atoi(strtokIndx);						// convert this part to an integer copy to CmdFrom PC
 
 			unsigned int y = CmdFromPC + DataFromPC + Data2FromPc + Data3FromPC;	// Checksum Check
 
@@ -209,6 +242,7 @@ bool RecvCmdData() {												// Recieve data
 	return false;
 }
 
+
 /*----------------------------------------------------------------------------------------------------
  Function Name:		ReplyToCmdData
 					Returns CMD, Data, Data2, Data3 and Checksum to PC
@@ -233,6 +267,8 @@ void ReplyToCmdData(int CMD, unsigned int Data, unsigned int Data2, unsigned int
 	CurrData2 = 0;									//Clear Current Data2
 	CurrData3 = 0;									//Clear Current Data3
 }
+
+
 /*----------------------------------------------------------------------------------------------------
  Function Name:		RunCMD
 					Runs CMDs received from PC
@@ -242,69 +278,85 @@ bool RunCMD(int CMD, unsigned int Data, unsigned int Data2, unsigned int Data3) 
 	
 	switch (CMD) {
 
-	case 1:/// Send Microcontroller Type |--> RX: <1,0,0,0,1,> TX: <200,0,0,0,CheckSum,>
-		ReplyToCmdData(200, 0, 0, 0);							//Send Status string
+	case 1:// Send Microcontroller Type |--> RX: <1,0,0,0,1,> TX: <200,0,0,0,CheckSum,>
+		ReplyToCmdData(200, 0, 0, 0);							//Send Type string
 		break;
 	
-	case 201:/// Send Status |--> RX: <201,0,0,0,201,> TX: <111,1111,1111,1111,CheckSum,>
+	case 226://Enguage or disenguage TblHeater (1=on 0=off)|--> RX: <226,OnOff,0,0,CheckSum,>	|--> TX: <226,OnOff,0,0,CheckSum,>
+		CmdPvTblHeater(Data);
+		ReplyToCmdData(CurrCMD, Data, CurrData2, CurrData3);		//Send completed string	
+		break;
+
+	case 201:// Send Status |--> RX: <201,0,0,0,201,> TX: <111,1111,1111,1111,CheckSum,>
 		ReplyToCmdData(111, 1111, 1111, 1111);							//Send Status string
 		break;
 
-	case 202:///Return previous CMD |--> RX: <202,0,0,0,202,> |--> TX: <PreCMD,PreData,PreData,PreData,CheckSum,>
+	case 202://Return previous CMD |--> RX: <202,0,0,0,202,> |--> TX: <PreCMD,PreData,PreData,PreData,CheckSum,>
 		ReplyToCmdData(202, PrevCMD, 0, 0);									//Send previous CMD		
 		break;
 
-	case 203:/// Wait(NTime Mill Sec)|--> RX: <3,Time,0,0,3,>	|--> TX: <3,Time,0,0,CheckSum,>
+	case 203:// Wait(NTime Mill Sec)|--> RX: <203,Time,0,0,CheckSum,>	|--> TX: <3,Time,0,0,CheckSum,>
 		delay(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);			//Send completed string	
 		break;
 
-	case 204:///Enguage or disenguage PvSucCupVacume (1=on 0=off)|--> RX: <204,OnOff,0,0,204,>	|--> TX: <204,OnOff,0,0,CheckSum,>
+	case 204://Enguage or disenguage PvSucCupVacume (1=on 0=off)|--> RX: <204,OnOff,0,0,CheckSum,>	|--> TX: <204,OnOff,0,0,CheckSum,>
 		CmdPvSucCupVacume(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 205:///Enguage lay flat cutter for (Time) mill sec)|--> RX: <205,TimeOn,0,0,205,>	|--> TX: <205,TimeOn,0,0,CheckSum,>
+	case 205://Enguage lay flat cutter for (Time) mill sec)|--> RX: <205,TimeOn,0,0,CheckSum,>	|--> TX: <205,TimeOn,0,0,CheckSum,>
 		CmdLayFlatCutter(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 206:///Enguage or disenguage SucCupCylinder (1=on 0=off)|--> RX: <206,OnOff,0,0,206,>	|--> TX: <206,OnOff,0,0,CheckSum,>
-		CmdPvSucCupCylinder(Data);
+	case 206://Enguage or disenguage PvEjectwheelCylinder (1=on 0=off)|--> RX: <206,OnOff,0,0,CheckSum,>	|--> TX: <206,OnOff,0,0,CheckSum,>
+		CmdPvEjectwheelCylinder(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 207:///Enguage or disenguage PvSealerLH (1=on 0=off)|--> RX: <207,OnOff,0,0,207,>	|--> TX: <207,OnOff,0,0,CheckSum,>
+	case 207://Enguage or disenguage PvSealerLH (1=on 0=off)|--> RX: <207,OnOff,0,0,CheckSum,>	|--> TX: <207,OnOff,0,0,CheckSum,>
 		CmdPvSealerLH(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 208:///Enguage or disenguage PvSealerRH (1=on 0=off)|--> RX: <208,OnOff,0,0,208,>	|--> TX: <208,OnOff,0,0,CheckSum,>
+	case 208://Enguage or disenguage PvSealerRH (1=on 0=off)|--> RX: <208,OnOff,0,0,CheckSum,>	|--> TX: <208,OnOff,0,0,CheckSum,>
 		CmdPvSealerRH(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 209:///Enguage PvSealer For (n Time)MilSec|--> RX: <209,TimeOn,0,0,209,>	|--> TX: <209,TimeOn,0,0,CheckSum,>
+	case 209://Enguage Both PvSealers For (n Time)MilSec|--> RX: <209,TimeOn,0,0,CheckSum,>	|--> TX: <209,TimeOn,0,0,CheckSum,>
 		CmdPvSealerLhRhTime(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 210:///MoveToPosition Feed Lh Rh  |--> RX: <210,Position,Speed,0,210,>	|--> TX: <210,pos,0,0,CheckSum,>
-	{
-		unsigned int pos = MoveToPositionFeedLhRh(Data, Data2);
-		ReplyToCmdData(CurrCMD, pos, CurrData2, CurrData3);				//Send completed string
-		pos = 0;
-	}
-		break;
-		
-	case 211:///Enguage or disenguage SealerClamps (1=on 0=off)|--> RX: <211,OnOff,0,0,211,>	|--> TX: <211,OnOff,0,0,CheckSum,>
+		case 210://Enguage or disenguage SealerClamps (1=on 0=off)|--> RX: <210,OnOff,0,0,CheckSum,>	|--> TX: <211,OnOff,0,0,CheckSum,>
 		CmdPvSealerClamps(Data);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 	
-	case 212: ///MoveToPosition Seal Table to  Position at Speed |--> RX: <212,Position,Speed,0,212,>	|--> TX: <212,pos,0,0,CheckSum,>			
+	case 211://Enguage or disenguage Feed Roller (1=on 0=off)|--> RX: <211,OnOff,0,0,CheckSum,>	|--> TX: <211,OnOff,0,0,CheckSum,>
+		CmdFeed(Data);
+		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
+		break;
+	
+	case 212://MoveToPosition Layflat  |--> RX: <212,Position,Speed,0,CheckSum,>	|--> TX: <212,pos,0,0,CheckSum,>
+		{
+		unsigned int pos = MoveToPosition(SmLayflat,Data, Data2);
+		
+		if (pos == 6666) {													//if requested pos to much or to little
+			ReplyToCmdData(CurrCMD, pos, CurrData2, CurrData3);				//Send error string
+		}
+		else {																//if notCurrPosition = requested position
+			ReplyToCmdData(CurrCMD, SmSealTable[3], CurrData2, CurrData3);	//Send completed string
+		}
+		}
+		break;
+
+	case 213: //MoveToPosition Seal Table to Position at Speed |--> RX: <213,Position,Speed,0,CheckSum,>	|--> TX: <213,pos,0,0,CheckSum,>			
 		{
 		unsigned int pos = MoveToPosition(SmSealTable, Data, Data2);
+		
 		if (pos == 6666) {													//if requested pos to much or to little
 			ReplyToCmdData(CurrCMD, pos, CurrData2, CurrData3);				//Send error string
 		}
@@ -314,47 +366,44 @@ bool RunCMD(int CMD, unsigned int Data, unsigned int Data2, unsigned int Data3) 
 		}
 		break;
 	
-	case 213:///MoveSteps: SmSealTable, Dir, Steps, Speed|--> RX: <213,Dir,Steps,Speed,213,>	|--> TX: <213,Dir,Steps,Speed,CheckSum,>	
+	case 214://MoveSteps: SmSealTable, Dir, Steps, Speed|--> RX: <214,Dir,Steps,Speed,CheckSum,>	|--> TX: <214,Dir,Steps,Speed,CheckSum,>	
 		MoveSteps(SmSealTable, Data, Data2, Data3);						//Move seal table n steps
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 214:///Get SmSealTable Current Position	|--> RX: <214,0,0,0,214,> |--> TX: <214,Position,0,0,CheckSum,>											
+	case 215://Get SmSealTable Current Position	|--> RX: <215,0,0,0,215,> |--> TX: <215,Position,0,0,CheckSum,>											
 		ReplyToCmdData(CurrCMD, SmSealTable[3], CurrData2, CurrData3);	//Send completed Current Position string
 		break;
 
-	case 215:/// Go to home position |--> RX: <215,0,0,0,215,> |--> TX: <215,0,0,0,CheckSum,>
+	case 216:/// Go to home position |--> RX: <216,0,0,0,216,> |--> TX: <216,0,0,0,CheckSum,>
 		GoHome();
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
 		break;
 
-	case 216:///MoveSteps: Lh Rh steppers , Dir, Steps, Speed |--> RX: <216,Dir,Steps,Speed,216,>	|--> TX: <216,Dir,Steps,Speed,CheckSum,>	
-		MoveStepsLhRh(Data, Data2, Data3);
-		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string
-
-		break;
-
-	case 217:///MoveSteps: Lh Rh and feed steppers , Dir, Steps, Speed |--> RX: <217,Dir,Steps,Speed,217,>	|--> TX: <217,Dir,Steps,Speed,CheckSum,>	
-		MoveStepsFeedLhRh(Data, Data2, Data3);
+	case 217://MoveStepsFeeder: (Dir, Steps, Speed) |--> RX: <217,Dir,Steps,Speed,CheckSum,>	|--> TX: <217,Dir,Steps,Speed,CheckSum,>	
+		MoveStepsFeed(Data, Data2, Data3);
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string
 		break;
-	case 218:///Get Lh Rh Feed position|--> RX: <218,0,0,0,218,> |--> TX: <218,LH pos,RH pos,Feed pos,CheckSum,>
-		ReplyToCmdData(CurrCMD, SmLayflatLH[3], SmLayflatRH[3], SmLayflatFeed[3]);	//Send completed Current Position string
+
+	case 218://MoveStepsLayflat: Layflat Stepper, Dir, Steps, Speed |--> RX: <218,Dir,Steps,Speed,CheckSum,>	|--> TX: <218,Dir,Steps,Speed,CheckSum,>	
+		MoveStepsLayflat(Data, Data2, Data3);
+		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string
 		break;
 	
-	case 219:///MoveToPosition Lh Rh  | -- > RX: <219,Position,Speed,0,219, > | -- > TX: <219,pos,0,0,CheckSum,>
-		{
-		unsigned int pos = MoveToPositionLhRh(Data, Data2);
-		ReplyToCmdData(CurrCMD, pos, 0, 0);								//Send completed string
-		pos = 0;
-		}
+	case 219://Get layflat position|--> RX: <219,0,0,0,219,> |--> TX: <219,LH pos,RH pos,Feed pos,CheckSum,>
+		ReplyToCmdData(CurrCMD,SmLayflat[3], SmLayflat[4],0);			//Send completed Current Position and Max position
 		break;
 	
-	case 220:///Get SmSealTable Max Position	|--> RX: <220,0,0,0,220,> |--> TX: <220,Position,0,0,CheckSum,>											
+	case 220://MoveStepsEject  RX:Stepper, Dir, Steps, Speed  <220,Dir,Steps,Speed,CheckSum, > | -- > TX: <220,pos,0,0,CheckSum,>
+		MoveStepsEject(Data, Data2, Data3);
+		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string
+		break;
+	
+	case 221://Get SmSealTable Max Position	|--> RX: <221,0,0,0,220,> |--> TX: <221,Position,0,0,CheckSum,>											
 		ReplyToCmdData(CurrCMD, SmSealTable[4], CurrData2, CurrData3);	//Send completed max Position string
 		break;
 	
-	case 221:///Enable disable sealer	|--> RX: <221,CMD,0,0,220,> |--> TX: <221,On Off,0,0,CheckSum,>											
+	case 222://Enable disable sealer	|--> RX: <222,CMD,0,0,CheckSum,> |--> TX: <222,On Off,0,0,CheckSum,>											
 		if (Data == 1)
 		{
 			Enable = 1;
@@ -366,6 +415,21 @@ bool RunCMD(int CMD, unsigned int Data, unsigned int Data2, unsigned int Data3) 
 		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed enable or disabled (1on or 0 off)
 		break;
 	
+	case 223: //LayflatHome |--> RX: <223,0,0,0,223,> |--> TX: <223,0,0,0,CheckSum,>
+		LayflatHome();
+		ReplyToCmdData(CurrCMD, CurrData, CurrData2, CurrData3);		//Send completed string	
+		break;
+	
+	case 224: //CmdReadPSI |--> RX: <224,0,0,0,223,> |--> TX: <224,0,0,0,CheckSum,>
+		CmdReadPSI();
+		ReplyToCmdData(CurrCMD, PSI, CurrData2, CurrData3);				//Send completed string	
+		break;
+			
+	case 225://MoveServoToPos|--> RX: <225,Pos,0,0,CheckSum,>	|--> TX: <225,Pos,0,0,CheckSum,>	
+		int z = MoveServoToPos(Data);									//Move servo to position
+		ReplyToCmdData(CurrCMD, z, CurrData2, CurrData3);				//Send completed string	with position
+		break;
+
 	default:
 		return false;
 		break;
@@ -375,14 +439,54 @@ bool RunCMD(int CMD, unsigned int Data, unsigned int Data2, unsigned int Data3) 
 }
 
 /*----------------------------------------------------------------------------------------------------
+ Function Name:		GoHome
+					Moves Stepper X Amount of steps CW or CCW
+					Updates Current Position
+					Settings based on divide by 1 (IMPORTANT)
+______________________________________________________________________________________________________*/
+void GoHome() {
+	int AtHome = 1;												//proximity var
+	int AtAway = 1;												//proximity var
+
+	digitalWrite(PvLayflatCutter, LOW);							// Turn on cutter valve
+	delay(500);													// Wait
+	digitalWrite(PvLayflatCutter, HIGH);						// Turn off cutter valve
+
+	while (AtHome == 1) {										// Finding Home
+		AtHome = digitalRead(ProxHome);							// Checking switch untill its activated
+		MoveSteps(SmSealTable, CW, 5, 275);						// Move stepper till switch is activated
+	}
+
+	MoveSteps(SmSealTable, CCW, 25, 275);						// Move stepper back n places
+	SmSealTable[3] = 0;											// Record current position
+	AtHome = 1;													// Clear AtHome Var
+
+	while (AtAway == 1) {										// Finding Away
+		AtAway = digitalRead(ProxAway);							// Checking switch untill its activated
+		//Serial.print(AtAway);
+		MoveSteps(SmSealTable, CCW, 5, 275);					// Move stepper till switch is activated
+	}
+
+	MoveSteps(SmSealTable, CW, 25, 275);						// Move stepper back n places
+	SmSealTable[4] = SmSealTable[3];							// Record current position (away position)
+	AtAway = 1;
+
+	MoveToPosition(SmSealTable, 25, 275);						// Move to home position
+
+	LayflatHome();												//Home LayFlat
+}
+
+
+/*----------------------------------------------------------------------------------------------------
  Function Name:		CmdLayFlatCutter
 					Enguages lay flat cutter for (Time in mill seconds then disenguages
 _______________________________________________________________________________________________________*/
 void CmdLayFlatCutter(int Time) {
 	digitalWrite(PvLayflatCutter, LOW);						//Turn on Lay Flat Cutter Cylinder
-	delay(Time);											// For n-milsec
+	delay(Time);											//For n-milsec
 	digitalWrite(PvLayflatCutter, HIGH);					//Turn off Lay Flat Cutter Cylinder
 }
+
 
 /*----------------------------------------------------------------------------------------------------
  Function Name:		CmdPvSucCupVacume
@@ -391,26 +495,27 @@ ________________________________________________________________________________
 void CmdPvSucCupVacume(int Engage) {
 	if (Engage == 1)
 	{
-		digitalWrite(PvSucCupVacume, LOW);					//Turn on Lay Flat Cutter Cylinder
+		digitalWrite(PvSucCupVacume, LOW);					//Turn on PvSucCupVacume Cylinder
 	}
 	else if (Engage == 0)
 	{
-		digitalWrite(PvSucCupVacume, HIGH);					//Turn off Lay Flat Cutter Cylinder
+		digitalWrite(PvSucCupVacume, HIGH);					//Turn off PvSucCupVacume Cylinder
 	}
 }
 
+
 /*----------------------------------------------------------------------------------------------------
- Function Name:		CmdPvSucCupCylinder
+ Function Name:		CmdPvEjectwheelCylinder
 					Enguages Suc Cup Vacume cylinder
 _______________________________________________________________________________________________________*/
-void CmdPvSucCupCylinder(int Engage) {
+void CmdPvEjectwheelCylinder(int Engage) {
 	if (Engage == 1)
 	{
-		digitalWrite(PvSucCupCylinder, LOW);				//Turn on SucCupCylinder
+		digitalWrite(PvEjectwheelCylinder, LOW);				//Turn on PvEjectwheelCylinder
 	}
 	else if (Engage == 0)
 	{
-		digitalWrite(PvSucCupCylinder, HIGH);				//Turn off SucCupCylinder
+		digitalWrite(PvEjectwheelCylinder, HIGH);				//Turn off PvEjectwheelCylinder
 	}
 }
 
@@ -430,6 +535,7 @@ void CmdPvSealerLH(int Engage) {
 	}
 }
 
+
 /*----------------------------------------------------------------------------------------------------
  Function Name:		CmdCmdPvSealerRH
 					Enguages Suc Cup Vacume cylinder
@@ -445,8 +551,9 @@ void CmdPvSealerRH(int Engage) {
 	}
 }
 
+
 /*----------------------------------------------------------------------------------------------------
- Function Name:		CmdPvSealerLHTime
+ Function Name:		CmdPvSealer LH RH Time
 					Enguages Suc Cup Vacume cylinder
 _______________________________________________________________________________________________________*/
 void CmdPvSealerLhRhTime(int Time) {
@@ -458,9 +565,10 @@ void CmdPvSealerLhRhTime(int Time) {
 	digitalWrite(PvSealerRH, HIGH);							//Turn off PvSealerRH
 }
 
+
 /*----------------------------------------------------------------------------------------------------
  Function Name:		CmdCmdPvSealerClamps
-					Enguages Suc Cup Vacume cylinder
+					Enguages Sealer Clamps cylinder
 _______________________________________________________________________________________________________*/
 void CmdPvSealerClamps(int Engage) {
 	if (Engage == 1)
@@ -472,6 +580,23 @@ void CmdPvSealerClamps(int Engage) {
 		digitalWrite(PvSealerClamps, HIGH);						//Turn PvSealerClamps
 	}
 }
+
+
+/*----------------------------------------------------------------------------------------------------
+ Function Name:		CmdFeed
+					Enguages Feed Roller cylinder
+_______________________________________________________________________________________________________*/
+void CmdFeed(int Engage) {
+	if (Engage == 1)
+	{
+		digitalWrite(PvFeed, LOW);						//Turn on Feed Cylinder
+	}
+	else if (Engage == 0)
+	{
+		digitalWrite(PvFeed, HIGH);						//Turn off Feed Cylinder
+	}
+}
+
 
 /*----------------------------------------------------------------------------------------------------
  Function Name:		MoveToPosition
@@ -507,6 +632,7 @@ unsigned int MoveToPosition(unsigned int Stepper[5], unsigned int Position,  int
 	}
 }
 
+
 /*----------------------------------------------------------------------------------------------------
  Function Name:		MoveSteps
 					Moves Stepper X Amount of steps CW or CCW
@@ -514,36 +640,38 @@ unsigned int MoveToPosition(unsigned int Stepper[5], unsigned int Position,  int
 ______________________________________________________________________________________________________*/
 unsigned int MoveSteps(unsigned int Stepper[5], bool Dir, unsigned int Steps,  int Speed) {
 	
-		if (Dir == CW) {
-			digitalWrite(Stepper[1], LOW);						//Clockwise   
+		if (Dir == CCW) {
+			digitalWrite(Stepper[1], LOW);						//CCW   
 			digitalWrite(Stepper[2], HIGH);						//Enable Stepper Driver
 			
 			for (unsigned int i = 0; i < Steps; i++)			//Steps
 			{
-				digitalWrite(Stepper[0], HIGH);					//Pulse 
-				delayMicroseconds(30);							//Pulse Delay
-				digitalWrite(Stepper[0], LOW);					//Pulse
-				delayMicroseconds(Speed);						//Time between steps
-				Stepper[3] -= 1;								//Update Current Position
-			}
-			
-			digitalWrite(Stepper[2], LOW);						//Disable Stepper Driver
-			return Stepper[3];
-		}
-
-		else if (Dir == CCW) {
-			digitalWrite(Stepper[1], HIGH);						//CounterClockwise   
-			digitalWrite(Stepper[2], HIGH);						//Enable Stepper Driver
-			
-			for (unsigned int i = 0; i < Steps; i++)			//Steps
-			{
-				digitalWrite(Stepper[0], HIGH);					//Pulse 
-				delayMicroseconds(30);							//Pulse Delay
-				digitalWrite(Stepper[0], LOW);					//Pulse
+				digitalWrite(Stepper[0], LOW);					//Pulse 
+				delayMicroseconds(50);							//Pulse Delay
+				digitalWrite(Stepper[0], HIGH);					//Pulse
 				delayMicroseconds(Speed);						//Time between steps
 				Stepper[3] += 1;								//Update Current Position
 			}
 			
+			digitalWrite(Stepper[0], LOW);						//Pulse pin low  
+			digitalWrite(Stepper[2], LOW);						//Disable Stepper Driver
+			return Stepper[3];
+		}
+
+		else if (Dir == CW) {
+			digitalWrite(Stepper[1], HIGH);						//CW   
+			digitalWrite(Stepper[2], HIGH);						//Enable Stepper Driver
+			
+			for (unsigned int i = 0; i < Steps; i++)			//Steps
+			{
+				digitalWrite(Stepper[0], LOW);					//Pulse 
+				delayMicroseconds(50);							//Pulse Delay
+				digitalWrite(Stepper[0], HIGH);					//Pulse
+				delayMicroseconds(Speed);						//Time between steps
+				Stepper[3] -= 1;								//Update Current Position
+			}
+			
+			digitalWrite(Stepper[0], LOW);						//Pulse pin low 
 			digitalWrite(Stepper[2], LOW);						//Disable Stepper Driver
 			return Stepper[3];
 		}
@@ -553,221 +681,128 @@ unsigned int MoveSteps(unsigned int Stepper[5], bool Dir, unsigned int Steps,  i
 
 
 /*----------------------------------------------------------------------------------------------------
- Function Name:		GoHome
+ Function Name:		LayflatHome
 					Moves Stepper X Amount of steps CW or CCW
 					Updates Current Position
-					Settings based on divide by 1 (IMPORTANT)
+					Settings based on divide by 2 (IMPORTANT)
 ______________________________________________________________________________________________________*/
-void GoHome() {
-	
-	digitalWrite(PvLayflatCutter, LOW);							// Turn on cutter valve
-	delay(500);													// Wait
-	digitalWrite(PvLayflatCutter, HIGH);						// Turn off cutter valve
-	
-	while (AtHome == 1) {										// Finding Home
-		AtHome = digitalRead(ProxHome);							// Checking switch untill its activated
-		MoveSteps(SmSealTable, CW, 5, 600);						// Move stepper till switch is activated
+void LayflatHome() {
+	int LayflatAtHome = 1;										//proximity var
+	int LayflatAtAway = 1;										//proximity var
+
+	while (LayflatAtAway == 1) {								// Finding Home
+		LayflatAtAway = digitalRead(ProxLayflatAway);			// Checking switch untill its activated
+		MoveSteps(SmLayflat, CW, 5, 600);						// Move stepper till switch is activated
 	}
-	
-	MoveSteps(SmSealTable, CCW, 25, 600);						// Move stepper back n places
-	SmSealTable[3] = 0;											// Record current position
-	AtHome = 1;													// Clear AtHome Var
-	
-	while (AtAway == 1) {										// Finding Away
-		AtAway = digitalRead(ProxAway);							// Checking switch untill its activated
-		MoveSteps(SmSealTable, CCW, 5, 600);					// Move stepper till switch is activated
+
+	MoveSteps(SmLayflat, CCW, 25, 600);							// Move stepper back n places
+	SmLayflat[3] = 0;											// Record current position
+	LayflatAtHome = 1;											// Clear AtHome Var
+
+	while (LayflatAtHome == 1) {								// Finding Away
+		LayflatAtHome = digitalRead(ProxLayflatHome);			// Checking switch untill its activated
+		MoveSteps(SmLayflat, CCW, 5, 600);						// Move stepper till switch is activated
 	}
-	
+
 	MoveSteps(SmSealTable, CW, 25, 600);						// Move stepper back n places
-	SmSealTable[4] = SmSealTable[3];							// Record current position (away position)
-	AtAway = 1;
-	
-	MoveSteps(SmSealTable, CW, 3000, 600);						// Move table to eject extrution
-	MoveStepsLhRh(CW, 10000, 350);								// Move table steppers to eject layflat 
+	SmLayflat[4] = SmLayflat[3];								// Record current position (away position)
+	LayflatAtAway = 1;
 
-    MoveToPosition(SmSealTable, 5, 600);						// Move to home position
+	MoveToPosition(SmLayflat, 5, 600);							// Move to home position
 }
 
 
+/*----------------------------------------------------------------------------------------------------
+ Function Name:		MoveFeed n Steps
+					Move feed stepper
+______________________________________________________________________________________________________*/
+unsigned int MoveStepsFeed(bool Dir, unsigned int Steps, int Speed)
+{
+	MoveSteps(SmLayflatFeed, Dir, Steps, Speed);
+}
 
 
 /*----------------------------------------------------------------------------------------------------
- Function Name:		MoveToPositionLhRh
-					Move steppers on table to position
+ Function Name:		MoveSteps Layflat
+					Move layflat stepper on table
 ______________________________________________________________________________________________________*/
-unsigned int MoveToPositionLhRh(unsigned int Position, int Speed) {
+unsigned int MoveStepsLayflat(bool Dir, unsigned int Steps, int Speed) {
 
-	unsigned int ThePosition;
-	unsigned int x;
-	unsigned int y;
+	MoveSteps(SmLayflat, Dir, Steps, Speed);					// Move that amount of steps
+}
 
-	if (SmLayflatLH[3] == Position)								// Check if requested pos is Curr position
+
+/*----------------------------------------------------------------------------------------------------
+ Function Name:		MoveStepsEject
+					Move Eject stepper on table
+______________________________________________________________________________________________________*/
+unsigned int MoveStepsEject(bool Dir, unsigned int Steps, int Speed) {
+
+	MoveSteps(SmEjectLayflat, Dir, Steps, Speed);					// Move that amount of steps CCW
+}
+
+
+/*----------------------------------------------------------------------------------------------------
+ Function Name:		CmdReadPSI
+					Read Sealer PSI
+______________________________________________________________________________________________________*/
+void CmdReadPSI() {
+
+	int AnalogReading = analogRead(PSIPin);
+	PSI = (AnalogReading - 102) * 175 / (921 - 102);
+	/*
+	
+	
+	int sensorVal=analogRead(PSIPin);
+
+	Serial.println(sensorVal);
+
+	float voltage = (sensorVal*5.0)/1024.0;
+	
+	Serial.print("Volts: ");
+	Serial.print(voltage);
+	   
+	float pressure_psi = ((float)voltage - 0.5) * 25.0;
+
+	Serial.print("PSI: ");
+	Serial.print(pressure_psi);
+	   	
+	
+
+	so the formula is Pressure (PSI) = ( Analog Reading - 102 ) * 175 /  ( 921 - 102 )
+
+	*/
+
+}
+
+
+/*----------------------------------------------------------------------------------------------------
+ Function Name:		MoveServoToPos
+					Move Servo To position
+______________________________________________________________________________________________________*/
+int MoveServoToPos(int Pos) {
+		
+	LayflatServo.write(Pos);						// tell servo to go to position in variable 'pos'
+	delay(15);						
+	digitalWrite(MyServo,LOW);
+	return Pos;
+	
+}
+
+
+/*----------------------------------------------------------------------------------------------------
+ Function Name:		CmdPvTblHeater
+					Enguages Tbl Heater 
+_______________________________________________________________________________________________________*/
+void CmdPvTblHeater(int Engage) {
+	if (Engage == 1)
 	{
-		return Position;										// Return Position
+		digitalWrite(TblHeaterLH, LOW);							//Turn on Table Heater
+		digitalWrite(TblHeaterRH, LOW);							//Turn on Table Heater
 	}
-
-	if (Position >= 0);											// Check if requested pos to little
+	else if (Engage == 0)
 	{
-		if (Position > SmLayflatLH[3]) {						// If move to position is grater than current position 
-			x = Position - SmLayflatLH[3];						// Subtract current position from move to position
-			ThePosition = MoveStepsLhRh(CCW, x, Speed);			// Move that amount of steps CCW
-			return ThePosition;									// Return Position
-		}
-		else if (Position < SmLayflatLH[3]) {					// If move to position is grater than current position 
-			y = SmLayflatLH[3] - Position;						// Subtract move to position from current position
-			ThePosition = MoveStepsLhRh(CW, y, Speed);			// Move that amount of steps CW
-			return ThePosition;									// Return Position	
-		}
-
-		else
-			return 6666;										//Return request position error
+		digitalWrite(TblHeaterLH, HIGH);						//Turn off Table Heater
+		digitalWrite(TblHeaterRH, HIGH);						//Turn off Table Heater
 	}
-}
-
-
-/*----------------------------------------------------------------------------------------------------
- Function Name:		MoveToPositionFeedLhRh
-					Move steppers on table and feed stepper to position
-______________________________________________________________________________________________________*/
-unsigned int MoveToPositionFeedLhRh(unsigned int Position, int Speed) {
-		
-	unsigned int ThePosition;
-	
-	SmLayflatLH[3] = 0;											//Clear CurrPosiotion
-	SmLayflatRH[3] = 0;											//Clear CurrPosiotion
-	SmLayflatFeed[3] = 0;										//Clear CurrPosiotion
-		
-	ThePosition = MoveStepsFeedLhRh(CCW, Position, Speed);		// Move that amount of steps CCW
-	return ThePosition;											// Return Position
-}
-
-
-/*----------------------------------------------------------------------------------------------------
- Function Name:		MoveStepsLhRh
-					Move steppers on table n steps
-______________________________________________________________________________________________________*/
-unsigned int MoveStepsLhRh(bool Dir, unsigned int Steps, int Speed) {
-	
-		if (Dir == CW) {
-			digitalWrite(SmLayflatLH[1], LOW);						//Clockwise   
-			digitalWrite(SmLayflatRH[1], LOW);						//Clockwise
-			digitalWrite(SmLayflatLH[2], HIGH);						//Enable Stepper Driver
-			digitalWrite(SmLayflatRH[2], HIGH);						//Enable Stepper Driver
-			
-			for (unsigned int i = 0; i < Steps; i++)				//Steps
-			{
-				digitalWrite(SmLayflatLH[0], HIGH);					//Pulse SmLayflatLH
-				digitalWrite(SmLayflatRH[0], HIGH);					//Pulse SmLayflatRH 
-				delayMicroseconds(30);								//Pulse Delay
-				digitalWrite(SmLayflatLH[0], LOW);					//Pulse SmLayflatLH
-				digitalWrite(SmLayflatRH[0], LOW);					//Pulse SmLayflatRH
-				delayMicroseconds(Speed);							//Time between steps
-				
-				SmLayflatLH[3] -= 1;								//Update Current SmLayflatLH Position
-				SmLayflatRH[3] -= 1;								//Update Current SmLayflatRH Position
-			}
-
-			digitalWrite(SmLayflatLH[2], LOW);						//Disable Stepper Driver
-			digitalWrite(SmLayflatRH[2], LOW);						//Disable Stepper Driver
-
-			return SmLayflatLH[3];
-		}
-
-		else if (Dir == CCW) {
-			digitalWrite(SmLayflatLH[1], HIGH);						//Clockwise   
-			digitalWrite(SmLayflatRH[1], HIGH);						//Clockwise
-			digitalWrite(SmLayflatLH[2], HIGH);						//Enable Stepper Driver
-			digitalWrite(SmLayflatRH[2], HIGH);						//Enable Stepper Driver
-
-			for (unsigned int i = 0; i < Steps; i++)				//Steps
-			{
-				digitalWrite(SmLayflatLH[0], HIGH);					//Pulse SmLayflatLH
-				digitalWrite(SmLayflatRH[0], HIGH);					//Pulse SmLayflatRH
-				delayMicroseconds(30);								//Pulse Delay
-				digitalWrite(SmLayflatLH[0], LOW);					//Pulse SmLayflatLH
-				digitalWrite(SmLayflatRH[0], LOW);					//Pulse SmLayflatRH
-				delayMicroseconds(Speed);							//Time between steps
-				
-				SmLayflatLH[3] += 1;								//Update Current Position
-				SmLayflatRH[3] += 1;								//Update Current Position
-			}
-
-			digitalWrite(SmLayflatLH[2], LOW);						//Disable Stepper Driver
-			digitalWrite(SmLayflatRH[2], LOW);						//Disable Stepper Driver
-			return SmLayflatLH[3];
-		}
-
-	return SmLayflatLH[3];
-}
-
-
-/*----------------------------------------------------------------------------------------------------
- Function Name:		MoveStepsFeedLhRh
-					Move steppers on table and feed stepper n steps
-______________________________________________________________________________________________________*/
-unsigned int MoveStepsFeedLhRh(bool Dir, unsigned int Steps, int Speed) {
-
-	if (Dir == CW) {
-		digitalWrite(SmLayflatLH[1], LOW);						//Clockwise   
-		digitalWrite(SmLayflatRH[1], LOW);						//Clockwise
-		digitalWrite(SmLayflatFeed[1], LOW);					//Clockwise
-		digitalWrite(SmLayflatLH[2], HIGH);						//Enable Stepper Driver
-		digitalWrite(SmLayflatRH[2], HIGH);						//Enable Stepper Driver
-		digitalWrite(SmLayflatFeed[2], HIGH);					//Enable Stepper Driver
-		
-		for (unsigned int i = 0; i < Steps; i++)				//Steps
-		{
-			digitalWrite(SmLayflatLH[0], HIGH);					//Pulse SmLayflatLH
-			digitalWrite(SmLayflatRH[0], HIGH);					//Pulse SmLayflatRH 
-			digitalWrite(SmLayflatFeed[0], HIGH);				//Pulse SmLayflatFeed 
-			delayMicroseconds(50);								//Pulse Delay
-			digitalWrite(SmLayflatLH[0], LOW);					//Pulse SmLayflatLH
-			digitalWrite(SmLayflatRH[0], LOW);					//Pulse SmLayflatRH
-			digitalWrite(SmLayflatFeed[0], LOW);				//Pulse SmLayflatFeed 
-			delayMicroseconds(Speed);							//Time between steps
-
-			SmLayflatLH[3] -= 1;								//Update Current SmLayflatLH Position
-			SmLayflatRH[3] -= 1;								//Update Current SmLayflatRH Position
-			SmLayflatFeed[3] -= 1;								//Update Current SmLayflatRH Position
-		}
-
-		digitalWrite(SmLayflatLH[2], LOW);						//Disable Stepper Driver
-		digitalWrite(SmLayflatRH[2], LOW);						//Disable Stepper Driver
-		digitalWrite(SmLayflatFeed[2], LOW);					//Disable Stepper Driver
-
-		return SmLayflatLH[3];
-	}
-
-	else if (Dir == CCW) {
-		digitalWrite(SmLayflatLH[1], HIGH);						//Clockwise   
-		digitalWrite(SmLayflatRH[1], HIGH);						//Clockwise
-		digitalWrite(SmLayflatFeed[1], HIGH);					//Clockwise
-		digitalWrite(SmLayflatLH[2], HIGH);						//Enable Stepper Driver
-		digitalWrite(SmLayflatRH[2], HIGH);						//Enable Stepper Driver
-		digitalWrite(SmLayflatFeed[2], HIGH);					//Enable Stepper Driver
-
-		for (unsigned int i = 0; i < Steps; i++)				//Steps
-		{
-			digitalWrite(SmLayflatLH[0], HIGH);					//Pulse SmLayflatLH
-			digitalWrite(SmLayflatRH[0], HIGH);					//Pulse SmLayflatRH
-			digitalWrite(SmLayflatFeed[0], HIGH);				//Pulse SmLayflatFeed
-			delayMicroseconds(50);								//Pulse Delay
-			digitalWrite(SmLayflatLH[0], LOW);					//Pulse SmLayflatLH
-			digitalWrite(SmLayflatRH[0], LOW);					//Pulse SmLayflatRH
-			digitalWrite(SmLayflatFeed[0], LOW);				//Pulse SmLayflatFeed
-			delayMicroseconds(Speed);							//Time between steps
-
-			SmLayflatLH[3] += 1;								//Update Current Position
-			SmLayflatRH[3] += 1;								//Update Current Position
-			SmLayflatFeed[3] += 1;								//Update Current Position
-		}
-
-		digitalWrite(SmLayflatLH[2], LOW);						//Disable Stepper Driver
-		digitalWrite(SmLayflatRH[2], LOW);						//Disable Stepper Driver
-		digitalWrite(SmLayflatFeed[2], LOW);					//Disable Stepper Driver
-		return SmLayflatLH[3];
-	}
-
-	return SmLayflatLH[3];
-
 }
