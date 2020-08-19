@@ -1,9 +1,3 @@
 Add error handler
-Check constraint numbers on go to position and adjust
-Add function 2SmMoveSteps //Move 2 Steppers together
-Add function 2SmMoveToPosition // Move 2 steppers together to position
-Add request position function
-Add Stop and shut down
-finish commands
-When reply to folowing command reply with a 1 in data 2 confirming previous command exicuted (no error) ok to get more commands.
 Control Panel Schematic
+Change loop so it will read module type with out having to enable the module first

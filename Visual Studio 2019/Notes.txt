@@ -139,3 +139,81 @@ unsigned int MoveToPositionLayflat(unsigned int Position, int Speed) {
 			return 6666;										//Return request position error
 	}
 }
+
+
+
+----------------------------------------------------------------------------------------------------
+ Code for PSI guage conversion
+______________________________________________________________________________________________________
+unsigned int MoveToPositionLayflat(unsigned int Position, int Speed) {
+	
+	int sensorVal=analogRead(PSIPin);
+
+	Serial.println(sensorVal);
+
+	float voltage = (sensorVal*5.0)/1024.0;
+	
+	Serial.print("Volts: ");
+	Serial.print(voltage);
+	   
+	float pressure_psi = ((float)voltage - 0.5) * 25.0;
+
+	Serial.print("PSI: ");
+	Serial.print(pressure_psi);
+	   	
+	
+
+	so the formula is Pressure (PSI) = ( Analog Reading - 102 ) * 175 /  ( 921 - 102 )
+
+	*/
+
+
+	----------------------------------------------------------------------------------------------------
+ Old loop Code.
+______________________________________________________________________________________________________
+void loop() {
+	
+	if (Enable == 1)														// Check if enabled
+	{
+		if (RecvCmdData() == true) {										// If Received data and CMD is correct
+			
+			if (CurrCMD == 1)												//Check if CMD enable CMD
+			{
+				ReplyToCmdData(300, 0, 0, 0);								//Send Type string
+			}
+			else {
+
+				if (CurrCMD > 300 && CurrCMD < 399)							//Check if correct CMD numbers
+				{
+					RunCMD(CurrCMD, CurrData, CurrData2, CurrData3);		// Run Command
+				}
+				else
+				{
+					ReplyToCmdData(888, 8888, 8888, 8888);					//Send error code for CMD not > 100-200 <
+				}
+			}
+		}
+		else
+		{
+			delay(300);														//Wait a bit for new data
+		}
+	}
+	else
+	{
+		if (RecvCmdData() == true) {										//If Received data and CMD is correct
+			if (CurrCMD == 302 && CurrData == 1)							//Check if CMD enable CMD
+			{
+				RunCMD(CurrCMD, CurrData, CurrData2, CurrData3);			//Run Enable Command
+			}
+			else
+			{
+				ReplyToCmdData(777, 7777, 7777, 7777);						//Send error code for not enabled
+			}
+		}
+		else
+		{
+			delay(300);														//Pause a bit 		
+		}
+
+	}
+}
